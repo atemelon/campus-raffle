@@ -262,6 +262,7 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
     const data = await r.json().catch(() => ({}));
     if (r.status === 401) signOut();
     if (!r.ok) throw new Error(data.error || "Something went wrong. Try again.");
+    if (data.state) applyState(data.state);
     return data;
   }
 
@@ -385,15 +386,23 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
 
   async function act(btn, fn) {
     btn.disabled = true; orgNote("");
-    try { await fn(); await refresh(); } catch (err) { orgNote(err.message); note(err.message); btn.disabled = false; }
+    try { await fn(); renderAll(); } catch (err) { orgNote(err.message); note(err.message); btn.disabled = false; }
+  }
+
+  let stateAt = 0;
+  // Ignore a cached copy that is older than what this page already shows.
+  function applyState(data) {
+    if ((data.updatedAt || 0) < stateAt) return;
+    stateAt = data.updatedAt || 0;
+    prizes = data.prizes || []; entries = data.entries || []; winners = data.winners || [];
   }
 
   async function refresh() {
     try {
-      const r = await fetch("/api/entries", { cache: "no-store" });
+      // Organizers skip the shared cache so their view is always current.
+      const r = await fetch("/api/entries" + (isOrganizer() ? "?fresh=" + Date.now() : ""));
       if (!r.ok) throw 0;
-      const data = await r.json();
-      prizes = data.prizes || []; entries = data.entries || []; winners = data.winners || [];
+      applyState(await r.json());
       note("");
     } catch { note("Can't reach the raffle right now. Retrying…"); }
     renderAll();
@@ -417,7 +426,6 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
       }
       const n = $("w-name"); n.textContent = data.winner.name; $("w-major").textContent = data.winner.major;
       n.classList.remove("pop"); void n.offsetWidth; n.classList.add("pop");
-      winners = data.winners;
     } catch (err) { orgNote(err.message); }
     busy = false; renderAll();
   }
@@ -437,7 +445,7 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
       setMsg(`You're in, ${name}. Good luck!`, "ok");
       $("f-name").value = ""; $("f-major").selectedIndex = 0;
       $("pick-list").querySelectorAll("input").forEach(i => i.checked = false);
-      refresh();
+      if (data.state) { applyState(data.state); renderAll(); }
     } catch { setMsg("No connection. Check your internet and try again.", "err"); }
     finally { btn.disabled = !prizes.length; }
   });
@@ -478,8 +486,23 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
     $("reset-yes").disabled = false; $("reset-confirm").hidden = true;
   });
 
+  // Refresh every 30 s while the page is visible and someone has used it in the last 10 minutes.
+  const POLL_MS = 30000, IDLE_MS = 10 * 60 * 1000;
+  let lastActive = Date.now(), lastFetch = Date.now();
+  const wake = () => {
+    const wasIdle = Date.now() - lastActive > IDLE_MS;
+    lastActive = Date.now();
+    if (wasIdle && !document.hidden) { lastFetch = Date.now(); refresh(); }
+  };
+  ["pointerdown", "keydown", "touchstart", "scroll"].forEach(ev => addEventListener(ev, wake, { passive: true }));
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && Date.now() - lastFetch > POLL_MS) { lastActive = Date.now(); lastFetch = Date.now(); refresh(); }
+  });
+  setInterval(() => {
+    if (document.hidden || busy || Date.now() - lastActive > IDLE_MS) return;
+    lastFetch = Date.now(); refresh();
+  }, POLL_MS);
   refresh();
-  setInterval(() => { if (!document.hidden && !busy) refresh(); }, 5000);
 })();
 </script>
 </body>
