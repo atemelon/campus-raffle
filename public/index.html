@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Campus Raffle</title>
+<title>Student Creative Summit Raffle</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>
@@ -37,6 +37,7 @@
   --ok: #4fd39a; --err: #ff7b6b; color-scheme: dark;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { margin: 0; }
 body { background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.5; }
 .wrap { max-width: 1080px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 48px; display: grid; gap: 28px; }
@@ -81,7 +82,14 @@ ol.entries li:first-child { border-top: 0; }
 .empty { color: var(--muted); padding: 18px 0; margin: 0; }
 
 /* Draw stage */
-.stage { background: var(--ink); color: var(--paper); border-radius: 14px; padding: 22px; display: grid; gap: 14px; }
+.stage { background: var(--ink); color: var(--paper); border-radius: 14px; padding: 0; }
+.stage > summary { list-style: none; cursor: pointer; padding: 16px 22px; display: flex; justify-content: space-between; align-items: center; gap: 12px; font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.18em; text-transform: uppercase; }
+.stage > summary::-webkit-details-marker { display: none; }
+.stage > summary::after { content: "Show"; font-family: var(--body); letter-spacing: normal; text-transform: none; font-size: 0.85rem; font-weight: 700; text-decoration: underline; }
+.stage[open] > summary::after { content: "Hide"; }
+.stage > summary:focus-visible { outline: 3px solid var(--ticket); outline-offset: -3px; border-radius: 14px; }
+.stage-body { padding: 0 22px 22px; display: grid; gap: 14px; }
+.eyebrow { font-family: var(--mono); font-weight: 700; font-size: 0.8rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
 .stage .label { font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.75; }
 .winner-name { font-family: var(--display); font-weight: 800; font-size: clamp(1.8rem, 5vw, 2.8rem); line-height: 1.05; margin: 0; overflow-wrap: anywhere; text-wrap: balance; }
 .winner-major { margin: 0; opacity: 0.8; }
@@ -139,7 +147,8 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
 <body>
 <div class="wrap">
   <header>
-    <h1>Campus Raffle</h1>
+    <div class="eyebrow">Raffle</div>
+    <h1>Student Creative Summit</h1>
     <p>Enter your name and major, then pick the prizes you'd like a chance at. One entry per name; each person can win one prize.</p>
   </header>
 
@@ -176,8 +185,9 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
     </section>
 
     <div style="display:grid;gap:20px;min-width:0">
-      <section class="stage" id="stage" hidden aria-labelledby="stage-label">
-        <div class="label" id="stage-label">Organizer</div>
+      <details class="stage" id="stage" hidden open>
+        <summary>Organizer tools</summary>
+        <div class="stage-body">
         <div>
           <p class="winner-prize" id="w-prize"></p>
           <p class="winner-name" id="w-name">Ready to draw</p>
@@ -199,7 +209,8 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
           <button class="btn small ghost" id="reset-no" type="button" style="color:inherit">Cancel</button>
         </div>
         <p class="msg" id="org-note" style="color:var(--ticket)"></p>
-      </section>
+        </div>
+      </details>
 
       <section class="panel" aria-labelledby="prizes-h">
         <h2 id="prizes-h">Prizes <span class="count" id="prize-count"></span></h2>
@@ -386,6 +397,7 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
 
   async function drawFor(p) {
     if (busy) return;
+    $("stage").open = true;
     busy = true; renderPrizes(); orgNote("");
     $("stage").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
     $("w-prize").textContent = p.name;
