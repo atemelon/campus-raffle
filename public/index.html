@@ -54,8 +54,10 @@ header p { margin: 8px 0 0; color: var(--muted); max-width: 60ch; }
 .stub-side { writing-mode: vertical-rl; transform: rotate(180deg); display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-weight: 700; letter-spacing: 0.2em; font-size: 0.8rem; text-transform: uppercase; }
 .ticket h2 { font-family: var(--display); font-weight: 800; margin: 0; font-size: 1.5rem; }
 label { display: grid; gap: 6px; font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.06em; }
-input { font: inherit; font-size: 1.05rem; text-transform: none; letter-spacing: normal; font-weight: 400; padding: 12px 14px; border-radius: 10px; border: 2px solid color-mix(in srgb, var(--ticket-ink) 25%, transparent); background: #fffdf3; color: #221c00; width: 100%; min-width: 0; }
-input:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
+input, select { font: inherit; font-size: 1.05rem; text-transform: none; letter-spacing: normal; font-weight: 400; padding: 12px 14px; border-radius: 10px; border: 2px solid color-mix(in srgb, var(--ticket-ink) 25%, transparent); background: #fffdf3; color: #221c00; width: 100%; min-width: 0; }
+select { appearance: none; cursor: pointer; padding-right: 40px; background-image: linear-gradient(45deg, transparent 50%, #221c00 50%), linear-gradient(135deg, #221c00 50%, transparent 50%); background-position: calc(100% - 20px) 55%, calc(100% - 14px) 55%; background-size: 6px 6px; background-repeat: no-repeat; }
+select:invalid { color: #7a7150; }
+input:focus-visible, select:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
 .btn { font: inherit; font-weight: 700; border: 0; border-radius: 10px; padding: 12px 18px; cursor: pointer; background: var(--accent); color: var(--accent-ink); }
 .btn:hover { filter: brightness(1.07); }
 .btn:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
@@ -149,7 +151,7 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
   <header>
     <div class="eyebrow">Raffle</div>
     <h1>Student Creative Summit</h1>
-    <p>Enter your name and major, then pick the prizes you'd like a chance at. One entry per name; each person can win one prize.</p>
+    <p>Enter your name and area of study, then pick the prizes you'd like a chance at. One entry per name; each person can win one prize.</p>
   </header>
 
   <div class="grid">
@@ -159,8 +161,18 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
         <label for="f-name">Full name
           <input id="f-name" name="name" autocomplete="name" maxlength="80" placeholder="e.g. Jordan Alvarez" required>
         </label>
-        <label for="f-major">Major
-          <input id="f-major" name="major" list="majors" maxlength="80" placeholder="e.g. Graphic Design" required>
+        <label for="f-major">Area of study
+          <select id="f-major" name="area" required>
+            <option value="" disabled selected>Choose one</option>
+            <option>Theater Arts</option>
+            <option>Animation and Interactive Media</option>
+            <option>Digital Media</option>
+            <option>Graphic Design</option>
+            <option>Studio Art</option>
+            <option>Music</option>
+            <option>JPW</option>
+            <option>Other</option>
+          </select>
         </label>
         <fieldset id="pick-set">
           <div class="pick-tools">
@@ -170,14 +182,6 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
           <div id="pick-list" style="display:grid;gap:8px"><p class="no-prizes">Loading prizes…</p></div>
         </fieldset>
         <div class="honey" aria-hidden="true"><label for="f-website">Website<input id="f-website" name="website" tabindex="-1" autocomplete="off"></label></div>
-        <datalist id="majors">
-          <option>Undeclared</option><option>Art History</option><option>Biology</option><option>Business Administration</option>
-          <option>Chemistry</option><option>Communication</option><option>Computer Science</option><option>Digital Media</option>
-          <option>Economics</option><option>Education</option><option>Engineering</option><option>English</option>
-          <option>Fine Arts</option><option>Graphic Design</option><option>History</option><option>Mathematics</option>
-          <option>Music</option><option>Nursing</option><option>Physics</option><option>Political Science</option>
-          <option>Psychology</option><option>Sociology</option><option>Theatre</option>
-        </datalist>
         <button class="btn" id="f-submit" type="submit">Enter the raffle</button>
         <p class="msg" id="f-msg" role="status" aria-live="polite"></p>
       </form>
@@ -423,7 +427,7 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
     const name = tidy($("f-name").value), major = tidy($("f-major").value);
     const picked = [...$("pick-list").querySelectorAll("input:checked")].map(i => i.value);
     if (!name) { setMsg("Add your name to enter.", "err"); $("f-name").focus(); return; }
-    if (!major) { setMsg("Add your major to enter.", "err"); $("f-major").focus(); return; }
+    if (!major) { setMsg("Choose your area of study to enter.", "err"); $("f-major").focus(); return; }
     if (!picked.length) { setMsg("Choose at least one prize to enter for.", "err"); return; }
     const btn = $("f-submit"); btn.disabled = true; setMsg("Saving your ticket…");
     try {
@@ -431,7 +435,7 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
       const data = await r.json().catch(() => ({}));
       if (!r.ok) { setMsg(data.error || "Your entry wasn't saved. Try again.", "err"); return; }
       setMsg(`You're in, ${name}. Good luck!`, "ok");
-      $("f-name").value = ""; $("f-major").value = "";
+      $("f-name").value = ""; $("f-major").selectedIndex = 0;
       $("pick-list").querySelectorAll("input").forEach(i => i.checked = false);
       refresh();
     } catch { setMsg("No connection. Check your internet and try again.", "err"); }

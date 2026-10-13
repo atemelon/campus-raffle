@@ -1,3 +1,5 @@
+const AREAS = ["Theater Arts", "Animation and Interactive Media", "Digital Media", "Graphic Design", "Studio Art", "Music", "JPW", "Other"];
+
 import { entriesStore, tidy, keyFor, json, allEntries, getWinners, getPrizes } from "../lib/shared.mjs";
 
 // GET  /api/entries  -> { prizes, entries, winners }
@@ -18,7 +20,7 @@ export default async (req) => {
     const name = tidy(body.name).slice(0, 80);
     const major = tidy(body.major).slice(0, 80);
     if (name.length < 2) return json({ error: "Add your full name to enter." }, 400);
-    if (!major) return json({ error: "Add your major to enter." }, 400);
+    if (!AREAS.includes(major)) return json({ error: "Choose your area of study from the list." }, 400);
 
     const prizes = await getPrizes();
     if (!prizes.length) return json({ error: "Prizes aren't listed yet. Check back soon." }, 400);

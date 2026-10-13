@@ -1,6 +1,6 @@
 # Campus Raffle
 
-Attendees enter a unique name and their major and choose which prizes to enter for; organizers manage a prize inventory and draw winners per prize.
+Attendees enter a unique name and their area of study and choose which prizes to enter for; organizers manage a prize inventory and draw winners per prize.
 Static page in `public/`, two Netlify Functions in `netlify/functions/`, entries stored in Netlify Blobs.
 
 ## Deploy
@@ -29,8 +29,9 @@ netlify deploy --build --prod
 ## Running the event
 - Open the site, click **Organizer sign-in** at the bottom, enter `ORGANIZER_CODE`.
 - Add each prize with a quantity (e.g. "Tote bag", qty 10). You can change quantities or delete prizes later.
-- Share the URL (or a QR code of it). Attendees enter a name, major, and tick the prizes they want.
+- Share the URL (or a QR code of it). Attendees enter a name, choose an area of study, and tick the prizes they want.
 - Press **Draw** on a prize to pick a random winner from people who entered for it. Each prize can be drawn as many times as its quantity.
 - Each person can win only one prize; once they win, they're skipped in other draws. **Undo** removes a winner (e.g. a no-show) and frees that item.
 - **Clear entries & winners** resets for the next event but keeps the prize list.
 - Names are unique ignoring case, accents, and extra spaces.
+- Areas of study are listed in `public/index.html` (the `f-major` dropdown) and `netlify/functions/entries.mjs` (`AREAS`); change both together.
