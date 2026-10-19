@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Student Creative Summit Raffle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: a ticket-stub entry form beside a live roll of entries; the draw stage sits above the roll for organizers. */
+:root {
+  --paper: #f6f5fb;
+  --surface: #ffffff;
+  --ink: #1d1b3a;
+  --muted: #64618a;
+  --line: #dddbee;
+  --ticket: #ffd84d;
+  --ticket-ink: #2a2300;
+  --accent: #d6336c;
+  --accent-ink: #ffffff;
+  --ok: #1f8a5b;
+  --err: #c0392b;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "Atkinson Hyperlegible", system-ui, -apple-system, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #14132a; --surface: #1e1c3a; --ink: #eceaff; --muted: #a29fc9; --line: #34315a;
+    --ticket: #f2c832; --ticket-ink: #221c00; --accent: #ff6b9a; --accent-ink: #1a0610;
+    --ok: #4fd39a; --err: #ff7b6b; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #14132a; --surface: #1e1c3a; --ink: #eceaff; --muted: #a29fc9; --line: #34315a;
+  --ticket: #f2c832; --ticket-ink: #221c00; --accent: #ff6b9a; --accent-ink: #1a0610;
+  --ok: #4fd39a; --err: #ff7b6b; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body { background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.5; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 48px; display: grid; gap: 28px; }
+header h1 { font-family: var(--display); font-weight: 800; font-size: clamp(2rem, 6vw, 3.2rem); line-height: 1; margin: 0; letter-spacing: -0.02em; text-wrap: balance; }
+header p { margin: 8px 0 0; color: var(--muted); max-width: 60ch; }
+.grid { display: grid; gap: 28px; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); align-items: start; }
+@media (max-width: 820px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* Ticket stub */
+.ticket { background: var(--ticket); color: var(--ticket-ink); border-radius: 14px; position: relative; display: grid; grid-template-columns: minmax(0,1fr) 64px; overflow: hidden; }
+.ticket::before, .ticket::after { content: ""; position: absolute; right: 52px; width: 24px; height: 24px; border-radius: 50%; background: var(--paper); }
+.ticket::before { top: -12px; } .ticket::after { bottom: -12px; }
+.stub-main { padding: 24px 22px; display: grid; gap: 16px; border-right: 2px dashed color-mix(in srgb, var(--ticket-ink) 35%, transparent); }
+.stub-side { writing-mode: vertical-rl; transform: rotate(180deg); display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-weight: 700; letter-spacing: 0.2em; font-size: 0.8rem; text-transform: uppercase; }
+.ticket h2 { font-family: var(--display); font-weight: 800; margin: 0; font-size: 1.5rem; }
+label { display: grid; gap: 6px; font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.06em; }
+input, select { font: inherit; font-size: 1.05rem; text-transform: none; letter-spacing: normal; font-weight: 400; padding: 12px 14px; border-radius: 10px; border: 2px solid color-mix(in srgb, var(--ticket-ink) 25%, transparent); background: #fffdf3; color: #221c00; width: 100%; min-width: 0; }
+select { appearance: none; cursor: pointer; padding-right: 40px; background-image: linear-gradient(45deg, transparent 50%, #221c00 50%), linear-gradient(135deg, #221c00 50%, transparent 50%); background-position: calc(100% - 20px) 55%, calc(100% - 14px) 55%; background-size: 6px 6px; background-repeat: no-repeat; }
+select:invalid { color: #7a7150; }
+input:focus-visible, select:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
+.btn { font: inherit; font-weight: 700; border: 0; border-radius: 10px; padding: 12px 18px; cursor: pointer; background: var(--accent); color: var(--accent-ink); }
+.btn:hover { filter: brightness(1.07); }
+.btn:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn.ghost { background: transparent; color: var(--ink); border: 2px solid var(--line); }
+.btn.small { padding: 6px 10px; font-size: 0.85rem; }
+.ticket .btn { background: var(--ticket-ink); color: var(--ticket); justify-self: start; }
+.msg { min-height: 1.5em; font-weight: 700; margin: 0; }
+.msg.err { color: #8a1c10; } .msg.ok { color: #0f5a37; }
+
+/* Panels */
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: grid; gap: 14px; }
+.panel h2 { font-family: var(--display); font-weight: 600; font-size: 1.2rem; margin: 0; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.count { font-family: var(--mono); font-size: 0.9rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.search { border-color: var(--line); background: var(--paper); color: var(--ink); }
+ol.entries { list-style: none; margin: 0; padding: 0; display: grid; max-height: 460px; overflow-y: auto; }
+ol.entries li { display: grid; grid-template-columns: 4.2rem minmax(0,1fr) auto; gap: 12px; align-items: center; padding: 10px 4px; border-top: 1px solid var(--line); }
+ol.entries li:first-child { border-top: 0; }
+.no { font-family: var(--mono); font-size: 0.85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.who { min-width: 0; }
+.who b { display: block; overflow-wrap: anywhere; }
+.who span { color: var(--muted); font-size: 0.9rem; overflow-wrap: anywhere; }
+.won { font-family: var(--mono); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; background: var(--ticket); color: var(--ticket-ink); padding: 3px 8px; border-radius: 99px; }
+.empty { color: var(--muted); padding: 18px 0; margin: 0; }
+
+/* Draw stage */
+.stage { background: var(--ink); color: var(--paper); border-radius: 14px; padding: 0; }
+.stage > summary { list-style: none; cursor: pointer; padding: 16px 22px; display: flex; justify-content: space-between; align-items: center; gap: 12px; font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.18em; text-transform: uppercase; }
+.stage > summary::-webkit-details-marker { display: none; }
+.stage > summary::after { content: "Show"; font-family: var(--body); letter-spacing: normal; text-transform: none; font-size: 0.85rem; font-weight: 700; text-decoration: underline; }
+.stage[open] > summary::after { content: "Hide"; }
+.stage > summary:focus-visible { outline: 3px solid var(--ticket); outline-offset: -3px; border-radius: 14px; }
+.stage-body { padding: 0 22px 22px; display: grid; gap: 14px; }
+.eyebrow { font-family: var(--mono); font-weight: 700; font-size: 0.8rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+.stage .label { font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.75; }
+.winner-name { font-family: var(--display); font-weight: 800; font-size: clamp(1.8rem, 5vw, 2.8rem); line-height: 1.05; margin: 0; overflow-wrap: anywhere; text-wrap: balance; }
+.winner-major { margin: 0; opacity: 0.8; }
+.stage .row { display: flex; gap: 10px; flex-wrap: wrap; }
+.stage .btn.ghost { color: var(--paper); border-color: color-mix(in srgb, var(--paper) 35%, transparent); }
+.winners { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; font-size: 0.92rem; }
+.winners li { display: flex; gap: 10px; }
+.winners .no { color: inherit; opacity: 0.65; }
+.confirm { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; background: color-mix(in srgb, var(--err) 18%, transparent); padding: 10px 12px; border-radius: 10px; }
+.note { color: var(--muted); font-size: 0.88rem; margin: 0; }
+@media (prefers-reduced-motion: no-preference) { .pop { animation: pop .35s ease-out; } @keyframes pop { from { transform: scale(.92); opacity: .4 } to { transform: none; opacity: 1 } } }
+</style>
+<style>
+.honey { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.org-link { justify-self: center; background: none; border: 0; color: var(--muted); font: inherit; font-size: 0.85rem; text-decoration: underline; cursor: pointer; }
+.org-login { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.org-login input, .field { flex: 1 1 180px; border-color: var(--line); background: var(--paper); color: var(--ink); }
+
+/* Prize picker on the ticket */
+fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 8px; min-width: 0; }
+legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.06em; padding: 0; margin-bottom: 6px; }
+.pick { display: grid; grid-template-columns: auto minmax(0,1fr); gap: 10px; align-items: start; padding: 10px 12px; border-radius: 10px; background: #fffdf3; color: #221c00; border: 2px solid color-mix(in srgb, var(--ticket-ink) 18%, transparent); cursor: pointer; text-transform: none; letter-spacing: normal; font-weight: 400; font-size: 1rem; }
+.pick:has(input:checked) { border-color: #221c00; background: #fff6c9; }
+.pick:has(input:disabled) { opacity: 0.55; cursor: not-allowed; }
+.pick input { width: 20px; height: 20px; margin: 2px 0 0; accent-color: #221c00; }
+.pick b { display: block; overflow-wrap: anywhere; }
+.pick small { display: block; color: #5c5330; font-size: 0.85rem; }
+.pick-tools { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.linkish { background: none; border: 0; padding: 0; font: inherit; font-size: 0.85rem; font-weight: 700; color: inherit; text-decoration: underline; cursor: pointer; }
+.no-prizes { margin: 0; padding: 12px; border-radius: 10px; background: #fffdf3; color: #5c5330; }
+
+/* Prize inventory */
+.prizes { display: grid; gap: 12px; }
+.prize { border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 10px; background: var(--paper); }
+.prize-top { display: flex; justify-content: space-between; gap: 12px; align-items: start; flex-wrap: wrap; }
+.prize-top > div { min-width: 0; flex: 1 1 200px; }
+.prize h3 { font-family: var(--display); font-weight: 600; font-size: 1.1rem; margin: 0; overflow-wrap: anywhere; }
+.prize p { margin: 2px 0 0; color: var(--muted); font-size: 0.92rem; overflow-wrap: anywhere; }
+.stock { font-family: var(--mono); font-size: 0.8rem; font-variant-numeric: tabular-nums; white-space: nowrap; padding: 4px 10px; border-radius: 99px; background: var(--surface); border: 1px solid var(--line); }
+.stock.out { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.prize-winners { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 0.92rem; }
+.prize-winners li { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.prize-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.prize-actions input { width: 5.5rem; flex: 0 0 auto; padding: 6px 8px; font-size: 0.9rem; }
+.tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+.tag { font-size: 0.75rem; padding: 2px 8px; border-radius: 99px; background: var(--paper); border: 1px solid var(--line); color: var(--muted); }
+.add-prize { display: grid; gap: 8px; grid-template-columns: minmax(0,2fr) minmax(0,3fr) 5.5rem auto; align-items: end; }
+.add-prize input { background: var(--surface); color: var(--ink); border-color: var(--line); padding: 8px 10px; font-size: 0.95rem; }
+@media (max-width: 560px) { .add-prize { grid-template-columns: minmax(0,1fr) 5.5rem; } .add-prize .wide { grid-column: 1 / -1; } }
+.stage .add-prize input { background: color-mix(in srgb, var(--paper) 92%, transparent); color: var(--ink); }
+.stage label { color: var(--paper); }
+.winner-prize { font-family: var(--mono); font-size: 0.8rem; letter-spacing: 0.1em; text-transform: uppercase; margin: 0 0 6px; color: var(--ticket); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Raffle</div>
+    <h1>Student Creative Summit</h1>
+    <p>Enter your name and area of study, then pick the prizes you'd like a chance at. One entry per name; each person can win one prize.</p>
+  </header>
+
+  <div class="grid">
+    <section class="ticket" aria-labelledby="enter-h">
+      <form class="stub-main" id="entry-form" novalidate>
+        <h2 id="enter-h">Get your ticket</h2>
+        <label for="f-name">Full name
+          <input id="f-name" name="name" autocomplete="name" maxlength="80" placeholder="e.g. Jordan Alvarez" required>
+        </label>
+        <label for="f-major">Area of study
+          <select id="f-major" name="area" required>
+            <option value="" disabled selected>Choose one</option>
+            <option>Theater Arts</option>
+            <option>Animation and Interactive Media</option>
+            <option>Digital Media</option>
+            <option>Graphic Design</option>
+            <option>Studio Art</option>
+            <option>Music</option>
+            <option>JPW</option>
+            <option>Other</option>
+          </select>
+        </label>
+        <fieldset id="pick-set">
+          <div class="pick-tools">
+            <legend>Prizes you're entering for</legend>
+            <button class="linkish" id="pick-all" type="button">Select all</button>
+          </div>
+          <div id="pick-list" style="display:grid;gap:8px"><p class="no-prizes">Loading prizes…</p></div>
+        </fieldset>
+        <div class="honey" aria-hidden="true"><label for="f-website">Website<input id="f-website" name="website" tabindex="-1" autocomplete="off"></label></div>
+        <button class="btn" id="f-submit" type="submit">Enter the raffle</button>
+        <p class="msg" id="f-msg" role="status" aria-live="polite"></p>
+      </form>
+      <div class="stub-side" aria-hidden="true">Admit one · Raffle</div>
+    </section>
+
+    <div style="display:grid;gap:20px;min-width:0">
+      <details class="stage" id="stage" hidden open>
+        <summary>Organizer tools</summary>
+        <div class="stage-body">
+        <div>
+          <p class="winner-prize" id="w-prize"></p>
+          <p class="winner-name" id="w-name">Ready to draw</p>
+          <p class="winner-major" id="w-major">Press Draw on any prize below. Each person can win only one prize.</p>
+        </div>
+        <form class="add-prize" id="add-prize">
+          <label for="p-name">Prize<input id="p-name" maxlength="80" placeholder="e.g. Wacom tablet"></label>
+          <label for="p-desc" class="wide">Details (optional)<input id="p-desc" maxlength="200" placeholder="Donated by the Bookstore"></label>
+          <label for="p-qty">Qty<input id="p-qty" type="number" min="1" max="999" value="1" inputmode="numeric"></label>
+          <button class="btn" type="submit">Add prize</button>
+        </form>
+        <div class="row">
+          <button class="btn ghost" id="reset-btn" type="button">Clear entries &amp; winners…</button>
+          <button class="btn ghost" id="logout-btn" type="button">Sign out</button>
+        </div>
+        <div class="confirm" id="reset-confirm" hidden>
+          <span>Delete every entry and winner? Prizes stay listed.</span>
+          <button class="btn small" id="reset-yes" type="button">Yes, clear</button>
+          <button class="btn small ghost" id="reset-no" type="button" style="color:inherit">Cancel</button>
+        </div>
+        <p class="msg" id="org-note" style="color:var(--ticket)"></p>
+        </div>
+      </details>
+
+      <section class="panel" aria-labelledby="prizes-h">
+        <h2 id="prizes-h">Prizes <span class="count" id="prize-count"></span></h2>
+        <div class="prizes" id="prizes"></div>
+        <p class="empty" id="prizes-empty">No prizes listed yet. Organizers can add them after signing in.</p>
+      </section>
+
+      <section class="panel" aria-labelledby="list-h">
+        <h2 id="list-h">Entries <span class="count" id="count">0 tickets</span></h2>
+        <input class="search" id="f-search" type="search" placeholder="Find your name" aria-label="Find an entry">
+        <ol class="entries" id="entries"></ol>
+        <p class="empty" id="empty">Loading entries…</p>
+        <p class="note" id="status-note" hidden></p>
+      </section>
+
+      <form class="panel org-login" id="org-form" hidden>
+        <label for="f-code" style="flex-basis:100%">Organizer code</label>
+        <input id="f-code" type="password" autocomplete="current-password">
+        <button class="btn" type="submit">Unlock</button>
+        <p class="msg err" id="org-msg" style="flex-basis:100%"></p>
+      </form>
+      <button class="org-link" id="org-link" type="button">Organizer sign-in</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+  let prizes = [], entries = [], winners = [], busy = false;
+  let code = ""; try { code = sessionStorage.getItem("raffle-code") || ""; } catch {}
+  const isOrganizer = () => !!code;
+  const tidy = (s) => s.normalize("NFC").replace(/\s+/g, " ").trim();
+  const pad = (n) => String(n).padStart(4, "0");
+  const setMsg = (t, k) => { const m = $("f-msg"); m.textContent = t; m.className = "msg " + (k || ""); };
+  const note = (t) => { $("status-note").textContent = t; $("status-note").hidden = !t; };
+  const orgNote = (t) => { $("org-note").textContent = t || ""; };
+  const prizeById = (id) => prizes.find(p => p.id === id);
+  const awarded = (pid) => winners.filter(w => w.prizeId === pid);
+  const enteredFor = (pid) => entries.filter(e => e.prizes.includes(pid)).length;
+
+  async function admin(action, extra = {}) {
+    const r = await fetch("api/admin.php", { method: "POST", headers: { "content-type": "application/json", "x-organizer-code": code }, body: JSON.stringify({ action, ...extra }) });
+    const data = await r.json().catch(() => ({}));
+    if (r.status === 401) signOut();
+    if (!r.ok) throw new Error(data.error || "Something went wrong. Try again.");
+    if (data.state) applyState(data.state);
+    return data;
+  }
+
+  // Ticket: prize checkboxes. Keeps the viewer's ticks across refreshes.
+  function renderPicker() {
+    const list = $("pick-list");
+    const checked = new Set([...list.querySelectorAll("input:checked")].map(i => i.value));
+    list.textContent = "";
+    $("pick-all").hidden = prizes.length < 2;
+    if (!prizes.length) { list.append(el("p", "no-prizes", "Prizes will be listed here soon.")); $("f-submit").disabled = true; return; }
+    $("f-submit").disabled = false;
+    prizes.forEach(p => {
+      const left = p.quantity - awarded(p.id).length;
+      const lab = el("label", "pick"); lab.htmlFor = "pk-" + p.id;
+      const box = el("input"); box.type = "checkbox"; box.id = "pk-" + p.id; box.value = p.id;
+      box.checked = checked.has(p.id); box.disabled = left <= 0;
+      const txt = el("span");
+      txt.append(el("b", null, p.name));
+      txt.append(el("small", null, left <= 0 ? "All awarded" : `${p.quantity} available${p.description ? " · " + p.description : ""}`));
+      lab.append(box, txt); list.append(lab);
+    });
+  }
+  $("pick-all").addEventListener("click", () => {
+    const boxes = [...$("pick-list").querySelectorAll("input:not(:disabled)")];
+    const all = boxes.every(b => b.checked);
+    boxes.forEach(b => b.checked = !all);
+  });
+
+  function renderPrizes() {
+    const wrap = $("prizes"); wrap.textContent = "";
+    $("prizes-empty").hidden = prizes.length > 0;
+    const total = prizes.reduce((n, p) => n + p.quantity, 0);
+    $("prize-count").textContent = prizes.length ? `${prizes.length} ${prizes.length === 1 ? "prize" : "prizes"} · ${total} items` : "";
+    prizes.forEach(p => {
+      const won = awarded(p.id), left = p.quantity - won.length, count = enteredFor(p.id);
+      const card = el("article", "prize");
+      const top = el("div", "prize-top");
+      const info = el("div");
+      info.append(el("h3", null, p.name));
+      if (p.description) info.append(el("p", null, p.description));
+      info.append(el("p", null, `${count} ${count === 1 ? "person" : "people"} entered`));
+      top.append(info, el("span", "stock" + (left <= 0 ? " out" : ""), left <= 0 ? "All awarded" : `${left} of ${p.quantity} left`));
+      card.append(top);
+
+      if (won.length) {
+        const ol = el("ol", "prize-winners");
+        won.forEach((w, i) => {
+          const li = el("li");
+          li.append(el("span", "won", "Winner " + (i + 1)), el("span", null, `${w.name} — ${w.major}`));
+          if (isOrganizer()) {
+            const undo = el("button", "btn small ghost", "Undo"); undo.type = "button";
+            undo.setAttribute("aria-label", `Undo ${w.name} winning ${p.name}`);
+            undo.addEventListener("click", () => act(undo, () => admin("unwin", { prizeId: p.id, entryId: w.entryId })));
+            li.append(undo);
+          }
+          ol.append(li);
+        });
+        card.append(ol);
+      }
+
+      if (isOrganizer()) {
+        const row = el("div", "prize-actions");
+        const draw = el("button", "btn small", "Draw"); draw.type = "button";
+        const eligible = entries.filter(e => e.prizes.includes(p.id) && !winners.some(w => w.entryId === e.id)).length;
+        draw.disabled = busy || left <= 0 || eligible === 0;
+        draw.title = left <= 0 ? "All awarded" : eligible === 0 ? "No eligible entrants" : "";
+        draw.addEventListener("click", () => drawFor(p));
+        const q = el("input", "field"); q.type = "number"; q.min = String(Math.max(1, won.length)); q.max = "999"; q.value = p.quantity;
+        q.id = "q-" + p.id; q.setAttribute("aria-label", "Quantity of " + p.name);
+        const save = el("button", "btn small ghost", "Set qty"); save.type = "button";
+        save.addEventListener("click", () => act(save, () => admin("updatePrize", { id: p.id, quantity: q.value })));
+        const del = el("button", "btn small ghost", "Delete…"); del.type = "button";
+        const confirm = el("span", "confirm"); confirm.hidden = true;
+        const yes = el("button", "btn small", "Delete prize"); yes.type = "button";
+        const no = el("button", "btn small ghost", "Keep"); no.type = "button";
+        confirm.append(el("span", null, won.length ? "Its winners will be cleared too." : "Remove this prize?"), yes, no);
+        del.addEventListener("click", () => { confirm.hidden = false; });
+        no.addEventListener("click", () => { confirm.hidden = true; });
+        yes.addEventListener("click", () => act(yes, () => admin("deletePrize", { id: p.id })));
+        row.append(draw, q, save, del);
+        card.append(row, confirm);
+      }
+      wrap.append(card);
+    });
+  }
+
+  function renderEntries() {
+    const q = tidy($("f-search").value).toLowerCase();
+    const wonBy = new Map(winners.map(w => [w.entryId, w]));
+    const list = $("entries"); list.textContent = "";
+    entries.forEach((e, i) => {
+      if (q && !(e.name.toLowerCase().includes(q) || e.major.toLowerCase().includes(q))) return;
+      const li = el("li");
+      const who = el("div", "who");
+      who.append(el("b", null, e.name), el("span", null, e.major));
+      const tags = el("div", "tags");
+      e.prizes.map(prizeById).filter(Boolean).forEach(p => tags.append(el("span", "tag", p.name)));
+      who.append(tags);
+      const end = el("div"); end.style.cssText = "display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:end";
+      const w = wonBy.get(e.id);
+      if (w) end.append(el("span", "won", "Won " + (prizeById(w.prizeId)?.name || "a prize")));
+      if (isOrganizer()) {
+        const rm = el("button", "btn small ghost", "Remove"); rm.type = "button";
+        rm.setAttribute("aria-label", "Remove " + e.name);
+        rm.addEventListener("click", () => act(rm, () => admin("remove", { id: e.id })));
+        end.append(rm);
+      }
+      li.append(el("span", "no", "No. " + pad(i + 1)), who, end);
+      list.append(li);
+    });
+    $("count").textContent = entries.length + (entries.length === 1 ? " ticket" : " tickets");
+    $("empty").hidden = entries.length > 0;
+    $("empty").textContent = "No tickets yet. Fill in the form to be the first entry.";
+  }
+
+  function renderAll() {
+    $("stage").hidden = !isOrganizer();
+    $("org-link").hidden = isOrganizer();
+    renderPicker(); renderPrizes(); renderEntries();
+  }
+
+  async function act(btn, fn) {
+    btn.disabled = true; orgNote("");
+    try { await fn(); renderAll(); } catch (err) { orgNote(err.message); note(err.message); btn.disabled = false; }
+  }
+
+  let stateAt = 0;
+  // Ignore a cached copy that is older than what this page already shows.
+  function applyState(data) {
+    if ((data.updatedAt || 0) < stateAt) return;
+    stateAt = data.updatedAt || 0;
+    prizes = data.prizes || []; entries = data.entries || []; winners = data.winners || [];
+  }
+
+  async function refresh() {
+    try {
+      const r = await fetch("api/entries.php?t=" + Date.now(), { cache: "no-store" });
+      if (!r.ok) throw 0;
+      applyState(await r.json());
+      note("");
+    } catch { note("Can't reach the raffle right now. Retrying…"); }
+    renderAll();
+  }
+
+  async function drawFor(p) {
+    if (busy) return;
+    $("stage").open = true;
+    busy = true; renderPrizes(); orgNote("");
+    $("stage").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+    $("w-prize").textContent = p.name;
+    try {
+      const data = await admin("draw", { prizeId: p.id });
+      const pool = data.pool || [];
+      if (!matchMedia("(prefers-reduced-motion: reduce)").matches && pool.length > 1) {
+        for (let i = 0; i < 18; i++) {
+          const r = pool[Math.floor(Math.random() * pool.length)];
+          $("w-name").textContent = r.name; $("w-major").textContent = r.major;
+          await new Promise(res => setTimeout(res, 40 + i * 9));
+        }
+      }
+      const n = $("w-name"); n.textContent = data.winner.name; $("w-major").textContent = data.winner.major;
+      n.classList.remove("pop"); void n.offsetWidth; n.classList.add("pop");
+    } catch (err) { orgNote(err.message); }
+    busy = false; renderAll();
+  }
+
+  $("entry-form").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const name = tidy($("f-name").value), major = tidy($("f-major").value);
+    const picked = [...$("pick-list").querySelectorAll("input:checked")].map(i => i.value);
+    if (!name) { setMsg("Add your name to enter.", "err"); $("f-name").focus(); return; }
+    if (!major) { setMsg("Choose your area of study to enter.", "err"); $("f-major").focus(); return; }
+    if (!picked.length) { setMsg("Choose at least one prize to enter for.", "err"); return; }
+    const btn = $("f-submit"); btn.disabled = true; setMsg("Saving your ticket…");
+    try {
+      const r = await fetch("api/entries.php", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name, major, prizes: picked, website: $("f-website").value }) });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) { setMsg(data.error || "Your entry wasn't saved. Try again.", "err"); return; }
+      setMsg(`You're in, ${name}. Good luck!`, "ok");
+      $("f-name").value = ""; $("f-major").selectedIndex = 0;
+      $("pick-list").querySelectorAll("input").forEach(i => i.checked = false);
+      if (data.state) { applyState(data.state); renderAll(); }
+    } catch { setMsg("No connection. Check your internet and try again.", "err"); }
+    finally { btn.disabled = !prizes.length; }
+  });
+  $("f-search").addEventListener("input", renderEntries);
+
+  // Organizer
+  $("org-link").addEventListener("click", () => { $("org-form").hidden = false; $("f-code").focus(); });
+  $("org-form").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    code = $("f-code").value;
+    try {
+      await admin("check");
+      try { sessionStorage.setItem("raffle-code", code); } catch {}
+      $("org-form").hidden = true; $("f-code").value = ""; $("org-msg").textContent = "";
+      renderAll();
+    } catch (err) { code = ""; $("org-msg").textContent = err.message; }
+  });
+  function signOut() {
+    code = ""; try { sessionStorage.removeItem("raffle-code"); } catch {}
+    renderAll();
+  }
+  $("logout-btn").addEventListener("click", signOut);
+
+  $("add-prize").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const btn = ev.submitter || $("add-prize").querySelector("button");
+    await act(btn, () => admin("addPrize", { name: $("p-name").value, description: $("p-desc").value, quantity: $("p-qty").value }));
+    if (!$("org-note").textContent) { $("p-name").value = ""; $("p-desc").value = ""; $("p-qty").value = "1"; $("p-name").focus(); }
+    btn.disabled = false;
+  });
+
+  $("reset-btn").addEventListener("click", () => { $("reset-confirm").hidden = false; });
+  $("reset-no").addEventListener("click", () => { $("reset-confirm").hidden = true; });
+  $("reset-yes").addEventListener("click", async () => {
+    await act($("reset-yes"), () => admin("reset", { keepPrizes: true }));
+    $("w-prize").textContent = ""; $("w-name").textContent = "Ready to draw";
+    $("w-major").textContent = "Press Draw on any prize below. Each person can win only one prize.";
+    $("reset-yes").disabled = false; $("reset-confirm").hidden = true;
+  });
+
+  // Refresh every 10 s while the page is visible and someone has used it in the last 10 minutes.
+  const POLL_MS = 10000, IDLE_MS = 10 * 60 * 1000;
+  let lastActive = Date.now(), lastFetch = Date.now();
+  const wake = () => {
+    const wasIdle = Date.now() - lastActive > IDLE_MS;
+    lastActive = Date.now();
+    if (wasIdle && !document.hidden) { lastFetch = Date.now(); refresh(); }
+  };
+  ["pointerdown", "keydown", "touchstart", "scroll"].forEach(ev => addEventListener(ev, wake, { passive: true }));
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && Date.now() - lastFetch > POLL_MS) { lastActive = Date.now(); lastFetch = Date.now(); refresh(); }
+  });
+  setInterval(() => {
+    if (document.hidden || busy || Date.now() - lastActive > IDLE_MS) return;
+    lastFetch = Date.now(); refresh();
+  }, POLL_MS);
+  refresh();
+})();
+</script>
+</body>
+</html>
