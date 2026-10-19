@@ -58,7 +58,26 @@ function key_for(string $name): string {
 }
 
 function empty_state(): array {
-  return ['prizes' => [], 'entries' => [], 'winners' => [], 'updatedAt' => 0];
+  return ['prizes' => [], 'entries' => [], 'winners' => [], 'schedule' => ['opensAt' => null, 'closesAt' => null], 'updatedAt' => 0];
+}
+
+// Entry window. Times are milliseconds since 1970 (UTC); null means "no limit".
+// Returns 'before' (not open yet), 'open', or 'closed'.
+function raffle_status(array $s, ?int $now = null): string {
+  $now = $now ?? now_ms();
+  $o = $s['schedule']['opensAt'] ?? null;
+  $c = $s['schedule']['closesAt'] ?? null;
+  if ($o !== null && $now < $o) return 'before';
+  if ($c !== null && $now >= $c) return 'closed';
+  return 'open';
+}
+
+// Public view of the state, with the server clock so every phone counts down in sync.
+function public_state(array $s): array {
+  $s['schedule'] = array_merge(['opensAt' => null, 'closesAt' => null], $s['schedule'] ?? []);
+  $s['serverNow'] = now_ms();
+  $s['status'] = raffle_status($s);
+  return $s;
 }
 
 function read_state(): array {
@@ -97,7 +116,7 @@ function update_state(callable $change): array {
     if (file_put_contents($tmp, DATA_GUARD . $json) === false || !rename($tmp, DATA_FILE)) {
       return ['error' => 'The entry couldn\'t be saved. Try again.', 'status' => 500];
     }
-    $result['state'] = $state;
+    $result['state'] = public_state($state);
     return $result;
   } finally {
     flock($lock, LOCK_UN);

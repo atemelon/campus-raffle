@@ -144,6 +144,27 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
 .stage .add-prize input { background: color-mix(in srgb, var(--paper) 92%, transparent); color: var(--ink); }
 .stage label { color: var(--paper); }
 .winner-prize { font-family: var(--mono); font-size: 0.8rem; letter-spacing: 0.1em; text-transform: uppercase; margin: 0 0 6px; color: var(--ticket); }
+
+/* ---------- Entry timer ---------- */
+.timer { display: grid; gap: 2px; border-radius: 12px; padding: 12px 14px; background: var(--ticket-ink); color: var(--ticket); }
+.timer .t-label { font-family: var(--mono); font-weight: 700; font-size: 0.72rem; letter-spacing: .14em; text-transform: uppercase; opacity: .85; }
+.timer .t-count { font-family: var(--mono); font-weight: 700; font-size: clamp(1.6rem, 6vw, 2.2rem); line-height: 1.1; font-variant-numeric: tabular-nums; }
+.timer .t-sub { font-size: 0.9rem; opacity: .85; }
+.timer.closed { background: #fffdf3; color: #8a1c10; border: 2px solid #8a1c10; }
+.timer.before { background: #fffdf3; color: var(--ticket-ink); border: 2px dashed var(--ticket-ink); }
+.timer.soon .t-count { animation: blink 1s steps(2, start) infinite; }
+@keyframes blink { to { opacity: .55; } }
+@media (prefers-reduced-motion: reduce) { .timer.soon .t-count { animation: none; } }
+.entry-locked input, .entry-locked select, .entry-locked .pick { opacity: .55; pointer-events: none; }
+.timer-ctl { display: grid; gap: 10px; border-top: 1px solid color-mix(in srgb, var(--paper) 25%, transparent); padding-top: 14px; }
+.timer-ctl .t-head { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: baseline; }
+.timer-ctl .t-state { font-family: var(--mono); font-weight: 700; font-size: 0.85rem; color: var(--ticket); }
+.timer-ctl .times { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 8px; align-items: end; }
+.timer-ctl .times .btn { justify-self: start; }
+.timer-ctl label { color: var(--paper); }
+.timer-ctl input { background: color-mix(in srgb, var(--paper) 92%, transparent); color: var(--ink); border-color: var(--line); padding: 8px 10px; font-size: 0.95rem; }
+.timer-ctl .quick { display: flex; flex-wrap: wrap; gap: 6px; }
+@media (max-width: 560px) { .timer-ctl .times { grid-template-columns: minmax(0, 1fr); } }
 </style>
 </head>
 <body>
@@ -158,6 +179,11 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
     <section class="ticket" aria-labelledby="enter-h">
       <form class="stub-main" id="entry-form" novalidate>
         <h2 id="enter-h">Get your ticket</h2>
+        <div class="timer" id="timer" hidden aria-live="polite">
+          <span class="t-label" id="t-label"></span>
+          <span class="t-count" id="t-count"></span>
+          <span class="t-sub" id="t-sub"></span>
+        </div>
         <label for="f-name">Full name
           <input id="f-name" name="name" autocomplete="name" maxlength="80" placeholder="e.g. Jordan Alvarez" required>
         </label>
@@ -203,6 +229,22 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
           <label for="p-qty">Qty<input id="p-qty" type="number" min="1" max="999" value="1" inputmode="numeric"></label>
           <button class="btn" type="submit">Add prize</button>
         </form>
+        <div class="timer-ctl">
+          <div class="t-head"><span class="label" style="color:var(--paper)">Entry timer</span><span class="t-state" id="tc-state">No timer: entries are open</span></div>
+          <div class="times">
+            <label for="tc-open">Opens<input id="tc-open" type="datetime-local"></label>
+            <label for="tc-close">Closes<input id="tc-close" type="datetime-local"></label>
+            <button class="btn" id="tc-save" type="button">Save times</button>
+          </div>
+          <div class="quick">
+            <button class="btn small" type="button" data-mode="openNow">Open now</button>
+            <button class="btn small ghost" type="button" data-mode="closeIn" data-min="15">Close in 15 min</button>
+            <button class="btn small ghost" type="button" data-mode="closeIn" data-min="30">Close in 30 min</button>
+            <button class="btn small ghost" type="button" data-mode="extend" data-min="5">+5 min</button>
+            <button class="btn small ghost" type="button" data-mode="closeNow">Close now</button>
+            <button class="btn small ghost" type="button" data-mode="clear">Remove timer</button>
+          </div>
+        </div>
         <div class="row">
           <button class="btn ghost" id="reset-btn" type="button">Clear entries &amp; winners…</button>
           <button class="btn ghost" id="logout-btn" type="button">Sign out</button>
@@ -382,6 +424,7 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
     $("stage").hidden = !isOrganizer();
     $("org-link").hidden = isOrganizer();
     renderPicker(); renderPrizes(); renderEntries();
+    lastStatus = null; tickTimer(); fillTimerInputs();
   }
 
   async function act(btn, fn) {
@@ -391,10 +434,75 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
 
   let stateAt = 0;
   // Ignore a cached copy that is older than what this page already shows.
+  let schedule = { opensAt: null, closesAt: null }, clockOffset = 0;
   function applyState(data) {
+    if (typeof data.serverNow === "number") clockOffset = data.serverNow - Date.now();
     if ((data.updatedAt || 0) < stateAt) return;
     stateAt = data.updatedAt || 0;
     prizes = data.prizes || []; entries = data.entries || []; winners = data.winners || [];
+    if (data.schedule) schedule = { opensAt: data.schedule.opensAt ?? null, closesAt: data.schedule.closesAt ?? null };
+  }
+
+  // ---- Entry timer ----
+  const serverNow = () => Date.now() + clockOffset;
+  function entryStatus() {
+    const now = serverNow();
+    if (schedule.opensAt != null && now < schedule.opensAt) return "before";
+    if (schedule.closesAt != null && now >= schedule.closesAt) return "closed";
+    return "open";
+  }
+  const clockTime = (ms) => new Date(ms).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  const dayTime = (ms) => new Date(ms).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  function span(ms) {
+    const t = Math.max(0, Math.ceil(ms / 1000));
+    const d = Math.floor(t / 86400), h = Math.floor(t % 86400 / 3600), m = Math.floor(t % 3600 / 60), sec = t % 60;
+    if (d > 0) return `${d}d ${h}h ${String(m).padStart(2, "0")}m`;
+    if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+    return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+  }
+  let lastStatus = null;
+  function tickTimer() {
+    const st = entryStatus(), now = serverNow();
+    const box = $("timer"), form = $("entry-form");
+    const hasTimer = schedule.opensAt != null || schedule.closesAt != null;
+    box.hidden = !hasTimer;
+    box.className = "timer " + (st === "open" ? "" : st);
+    if (st === "before") {
+      $("t-label").textContent = "Entries open in";
+      $("t-count").textContent = span(schedule.opensAt - now);
+      $("t-sub").textContent = "Opens " + dayTime(schedule.opensAt);
+    } else if (st === "closed") {
+      $("t-label").textContent = "Raffle entries are closed";
+      $("t-count").textContent = "Closed";
+      $("t-sub").textContent = "Entries closed at " + clockTime(schedule.closesAt) + ". Good luck to everyone who entered!";
+    } else if (schedule.closesAt != null) {
+      const left = schedule.closesAt - now;
+      $("t-label").textContent = "Entries close in";
+      $("t-count").textContent = span(left);
+      $("t-sub").textContent = "Closes at " + clockTime(schedule.closesAt);
+      box.classList.toggle("soon", left <= 60000);
+    } else {
+      $("t-label").textContent = "Entries are open";
+      $("t-count").textContent = "Open now";
+      $("t-sub").textContent = "";
+    }
+    const locked = st !== "open";
+    form.classList.toggle("entry-locked", locked);
+    if (locked) $("f-submit").disabled = true; else if (prizes.length && lastStatus !== "open") $("f-submit").disabled = false;
+    $("f-submit").textContent = st === "before" ? "Not open yet" : st === "closed" ? "Entries closed" : "Enter the raffle";
+    // organizer summary
+    $("tc-state").textContent = !hasTimer ? "No timer: entries are open"
+      : st === "before" ? "Opens in " + span(schedule.opensAt - now)
+      : st === "closed" ? "Closed at " + clockTime(schedule.closesAt)
+      : schedule.closesAt != null ? "Open · closes in " + span(schedule.closesAt - now) : "Open";
+    if (lastStatus && st !== lastStatus) refresh();
+    lastStatus = st;
+  }
+  const toLocalInput = (ms) => ms == null ? "" : new Date(ms - new Date(ms).getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  function fillTimerInputs() {
+    if (document.activeElement && document.activeElement.closest && document.activeElement.closest(".times")) return;
+    $("tc-open").value = toLocalInput(schedule.opensAt);
+    $("tc-close").value = toLocalInput(schedule.closesAt);
   }
 
   async function refresh() {
@@ -436,6 +544,7 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
     if (!name) { setMsg("Add your name to enter.", "err"); $("f-name").focus(); return; }
     if (!major) { setMsg("Choose your area of study to enter.", "err"); $("f-major").focus(); return; }
     if (!picked.length) { setMsg("Choose at least one prize to enter for.", "err"); return; }
+    if (entryStatus() !== "open") { setMsg(entryStatus() === "before" ? "The raffle isn't open yet." : "Raffle entries are closed.", "err"); return; }
     const btn = $("f-submit"); btn.disabled = true; setMsg("Saving your ticket…");
     try {
       const r = await fetch("api/entries.php", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name, major, prizes: picked, website: $("f-website").value }) });
@@ -446,7 +555,7 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
       $("pick-list").querySelectorAll("input").forEach(i => i.checked = false);
       if (data.state) { applyState(data.state); renderAll(); }
     } catch { setMsg("No connection. Check your internet and try again.", "err"); }
-    finally { btn.disabled = !prizes.length; }
+    finally { btn.disabled = !prizes.length || entryStatus() !== "open"; }
   });
   $("f-search").addEventListener("input", renderEntries);
 
@@ -475,6 +584,17 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
     if (!$("org-note").textContent) { $("p-name").value = ""; $("p-desc").value = ""; $("p-qty").value = "1"; $("p-name").focus(); }
     btn.disabled = false;
   });
+
+  document.querySelectorAll(".timer-ctl [data-mode]").forEach(b => b.addEventListener("click", () =>
+    act(b, () => admin("schedule", { mode: b.dataset.mode, minutes: Number(b.dataset.min || 0) })).then(() => { b.disabled = false; })));
+  $("tc-save").addEventListener("click", () => {
+    const o = $("tc-open").value ? new Date($("tc-open").value).getTime() : null;
+    const c = $("tc-close").value ? new Date($("tc-close").value).getTime() : null;
+    if (o != null && c != null && c <= o) { orgNote("The end time has to be after the start time."); return; }
+    const b = $("tc-save");
+    act(b, () => admin("schedule", { mode: "set", opensAt: o, closesAt: c })).then(() => { b.disabled = false; $("tc-save").blur(); fillTimerInputs(); });
+  });
+  setInterval(tickTimer, 1000);
 
   $("reset-btn").addEventListener("click", () => { $("reset-confirm").hidden = false; });
   $("reset-no").addEventListener("click", () => { $("reset-confirm").hidden = true; });

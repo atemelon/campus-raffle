@@ -33,7 +33,7 @@ const QTY_ERR = ['error' => 'Quantity must be a whole number from 1 to 999.', 's
 
 switch ($action) {
   case 'check':
-    respond(['ok' => true, 'state' => read_state()]);
+    respond(['ok' => true, 'state' => public_state(read_state())]);
 
   case 'addPrize':
     $name = clip(tidy($body['name'] ?? ''), 80);
@@ -125,6 +125,50 @@ switch ($action) {
       $s['entries'] = [];
       $s['winners'] = [];
       if (!$keepPrizes) $s['prizes'] = [];
+      return [];
+    });
+    break;
+
+  case 'schedule':
+    // mode: "set" (opensAt/closesAt in ms or null), "openNow", "closeNow", "closeIn" (minutes), "extend" (minutes), "clear".
+    // Relative modes use the server clock, so the organizer's computer clock doesn't matter.
+    $mode = (string) ($body['mode'] ?? 'set');
+    $mins = (int) ($body['minutes'] ?? 0);
+    $r = update_state(function (array &$s) use ($mode, $mins, $body) {
+      $now = now_ms();
+      $sch = array_merge(['opensAt' => null, 'closesAt' => null], $s['schedule'] ?? []);
+      $ms = function ($v) { return ($v === null || $v === '') ? null : (is_numeric($v) ? (int) $v : false); };
+      switch ($mode) {
+        case 'set':
+          $o = $ms($body['opensAt'] ?? null); $c = $ms($body['closesAt'] ?? null);
+          if ($o === false || $c === false) return ['error' => 'Those times aren\'t valid.', 'status' => 400];
+          if ($o !== null && $c !== null && $c <= $o) return ['error' => 'The end time has to be after the start time.', 'status' => 400];
+          $sch = ['opensAt' => $o, 'closesAt' => $c];
+          break;
+        case 'openNow':
+          $sch['opensAt'] = null;
+          if ($sch['closesAt'] !== null && $sch['closesAt'] <= $now) $sch['closesAt'] = null;
+          break;
+        case 'closeNow':
+          $sch['closesAt'] = $now;
+          if ($sch['opensAt'] !== null && $sch['opensAt'] > $now) $sch['opensAt'] = null;
+          break;
+        case 'closeIn':
+          if ($mins < 1 || $mins > 600) return ['error' => 'Choose between 1 and 600 minutes.', 'status' => 400];
+          $sch['closesAt'] = $now + $mins * 60000;
+          if ($sch['opensAt'] !== null && $sch['opensAt'] > $now) $sch['opensAt'] = null;
+          break;
+        case 'extend':
+          if ($mins < 1 || $mins > 600) return ['error' => 'Choose between 1 and 600 minutes.', 'status' => 400];
+          $sch['closesAt'] = max($sch['closesAt'] ?? $now, $now) + $mins * 60000;
+          break;
+        case 'clear':
+          $sch = ['opensAt' => null, 'closesAt' => null];
+          break;
+        default:
+          return ['error' => 'Unknown timer action.', 'status' => 400];
+      }
+      $s['schedule'] = $sch;
       return [];
     });
     break;

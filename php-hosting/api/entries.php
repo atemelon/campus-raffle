@@ -6,7 +6,7 @@ require __DIR__ . '/lib.php';
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 if ($method === 'GET') {
-  respond(read_state());
+  respond(public_state(read_state()));
 }
 
 if ($method !== 'POST') fail('Method not allowed', 405);
@@ -25,6 +25,9 @@ if ($key === '') fail('Use letters or numbers in your name.');
 $wanted = array_values(array_unique(array_map('strval', is_array($body['prizes'] ?? null) ? $body['prizes'] : [])));
 
 $r = update_state(function (array &$s) use ($name, $major, $key, $wanted) {
+  $st = raffle_status($s);
+  if ($st === 'before') return ['error' => 'The raffle isn\'t open yet. Check the countdown and try again when it opens.', 'status' => 403];
+  if ($st === 'closed') return ['error' => 'Raffle entries are closed.', 'status' => 403];
   if (!$s['prizes']) return ['error' => 'Prizes aren\'t listed yet. Check back soon.', 'status' => 400];
   $valid = array_column($s['prizes'], 'id');
   $picked = array_values(array_filter($wanted, fn($id) => in_array($id, $valid, true)));
