@@ -2,9 +2,16 @@
 // Shared helpers. All raffle data lives in one JSON file:
 // { prizes: [{id,name,description,quantity,createdAt}],
 //   entries: [{id,name,major,prizes:[prizeId],createdAt}],
-//   winners: [{prizeId,entryId,name,major,at}], updatedAt }
+//   entries: tickets (1 + bonus codes redeemed; missing means 1)
+//   winners: [{prizeId,entryId,name,major,at}],
+//   codes: [{code,label,createdAt,usedBy,usedByName,usedAt}]  (never sent to the public page)
+//   updatedAt }
 
 require __DIR__ . '/config.php';
+
+// Most tickets one person can hold (their entry plus bonus codes).
+// To change it, add a line like  const MAX_TICKETS = 4;  to config.php.
+if (!defined('MAX_TICKETS')) define('MAX_TICKETS', 3);
 
 const DATA_DIR = __DIR__ . '/../data';
 const DATA_FILE = DATA_DIR . '/raffle-data.php';
@@ -58,7 +65,7 @@ function key_for(string $name): string {
 }
 
 function empty_state(): array {
-  return ['prizes' => [], 'entries' => [], 'winners' => [], 'schedule' => ['opensAt' => null, 'closesAt' => null], 'updatedAt' => 0];
+  return ['prizes' => [], 'entries' => [], 'winners' => [], 'codes' => [], 'schedule' => ['opensAt' => null, 'closesAt' => null], 'updatedAt' => 0];
 }
 
 // Entry window. Times are milliseconds since 1970 (UTC); null means "no limit".
@@ -77,7 +84,28 @@ function public_state(array $s): array {
   $s['schedule'] = array_merge(['opensAt' => null, 'closesAt' => null], $s['schedule'] ?? []);
   $s['serverNow'] = now_ms();
   $s['status'] = raffle_status($s);
+  $s['maxTickets'] = MAX_TICKETS;
+  unset($s['codes']); // bonus codes stay private to organizers
+  foreach ($s['entries'] as &$e) $e['tickets'] = tickets_of($e);
   return $s;
+}
+
+function tickets_of(array $e): int {
+  return max(1, (int) ($e['tickets'] ?? 1));
+}
+
+// Bonus codes look like CSF-7KQ2X. No 0/O or 1/I, so they're easy to read off a slip.
+const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function new_code(): string {
+  $out = '';
+  for ($i = 0; $i < 5; $i++) $out .= CODE_ALPHABET[random_int(0, strlen(CODE_ALPHABET) - 1)];
+  return 'CSF-' . $out;
+}
+// Accepts "csf-7kq2x", "CSF 7KQ2X", "7kq2x" and similar.
+function normalize_code($raw): string {
+  $c = preg_replace('/[^A-Z0-9]/', '', strtoupper(is_string($raw) ? $raw : ''));
+  if (strlen($c) === 8 && strncmp($c, 'CSF', 3) === 0) $c = substr($c, 3);
+  return strlen($c) === 5 ? 'CSF-' . $c : '';
 }
 
 function read_state(): array {

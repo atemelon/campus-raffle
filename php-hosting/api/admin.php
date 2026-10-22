@@ -8,7 +8,10 @@
 //   draw        { prizeId }              one winner; a person can win at most one prize
 //   unwin       { prizeId, entryId }     undo a winner (no-show), freeing the slot
 //   remove      { id }                   delete one entry
-//   reset       { keepPrizes: true }     clear entries and winners (and prizes if keepPrizes is false)
+//   reset       { keepPrizes: true }     clear entries and winners (and prizes if keepPrizes is false); used bonus codes are cleared, unused ones kept
+//   codes                                list bonus codes -> { codes }
+//   makeCodes   { count, label? }        create single-use bonus codes -> { created, codes }
+//   deleteCode  { code }                 void one unused code -> { codes }
 require __DIR__ . '/lib.php';
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') fail('Method not allowed', 405);
@@ -90,12 +93,16 @@ switch ($action) {
       $won = array_column($s['winners'], 'entryId');
       $pool = array_values(array_filter($s['entries'], fn($e) => in_array($prizeId, $e['prizes'], true) && !in_array($e['id'], $won, true)));
       if (!$pool) return ['error' => "Nobody left to draw for “{$prize['name']}”.", 'status' => 409];
-      $pick = $pool[random_int(0, count($pool) - 1)];
+      // Weighted draw: each bonus ticket is one more chance.
+      $total = array_sum(array_map('tickets_of', $pool));
+      $roll = random_int(1, $total);
+      $pick = $pool[count($pool) - 1];
+      foreach ($pool as $e) { $roll -= tickets_of($e); if ($roll <= 0) { $pick = $e; break; } }
       $s['winners'][] = ['prizeId' => $prizeId, 'entryId' => $pick['id'], 'name' => $pick['name'], 'major' => $pick['major'], 'at' => now_ms()];
       return [
         'winner' => $pick,
         'prize' => $prize,
-        'pool' => array_map(fn($e) => ['name' => $e['name'], 'major' => $e['major']], $pool),
+        'pool' => array_map(fn($e) => ['name' => $e['name'], 'major' => $e['major'], 'tickets' => tickets_of($e)], $pool),
       ];
     });
     break;
@@ -124,6 +131,8 @@ switch ($action) {
     $r = update_state(function (array &$s) use ($keepPrizes) {
       $s['entries'] = [];
       $s['winners'] = [];
+      // Printed slips nobody has used yet keep working at the next event.
+      $s['codes'] = array_values(array_filter($s['codes'] ?? [], fn($c) => empty($c['usedBy'])));
       if (!$keepPrizes) $s['prizes'] = [];
       return [];
     });
@@ -170,6 +179,42 @@ switch ($action) {
       }
       $s['schedule'] = $sch;
       return [];
+    });
+    break;
+
+  case 'codes':
+    respond(['ok' => true, 'codes' => read_state()['codes'] ?? []]);
+
+  case 'makeCodes':
+    $count = (int) ($body['count'] ?? 0);
+    $label = clip(tidy($body['label'] ?? ''), 40);
+    if ($count < 1 || $count > 200) fail('Make between 1 and 200 codes at a time.');
+    $r = update_state(function (array &$s) use ($count, $label) {
+      $s['codes'] = $s['codes'] ?? [];
+      if (count($s['codes']) + $count > 2000) return ['error' => 'That would be more than 2,000 codes. Delete some unused ones first.', 'status' => 400];
+      $taken = array_flip(array_column($s['codes'], 'code'));
+      $created = [];
+      while (count($created) < $count) {
+        $c = new_code();
+        if (isset($taken[$c])) continue;
+        $taken[$c] = true;
+        $created[] = $c;
+        $s['codes'][] = ['code' => $c, 'label' => $label, 'createdAt' => now_ms(), 'usedBy' => null, 'usedByName' => null, 'usedAt' => null];
+      }
+      return ['created' => $created, 'codes' => $s['codes']];
+    });
+    break;
+
+  case 'deleteCode':
+    $c = normalize_code($body['code'] ?? '');
+    $r = update_state(function (array &$s) use ($c) {
+      foreach ($s['codes'] ?? [] as $i => $row) {
+        if ($row['code'] !== $c) continue;
+        if (!empty($row['usedBy'])) return ['error' => 'That code was already used, so it can\'t be deleted.', 'status' => 409];
+        array_splice($s['codes'], $i, 1);
+        return ['codes' => $s['codes']];
+      }
+      return ['error' => 'That code no longer exists.', 'status' => 404];
     });
     break;
 

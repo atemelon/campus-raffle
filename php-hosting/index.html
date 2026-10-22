@@ -165,6 +165,30 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
 .timer-ctl input { background: color-mix(in srgb, var(--paper) 92%, transparent); color: var(--ink); border-color: var(--line); padding: 8px 10px; font-size: 0.95rem; }
 .timer-ctl .quick { display: flex; flex-wrap: wrap; gap: 6px; }
 @media (max-width: 560px) { .timer-ctl .times { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- Bonus codes ---------- */
+.bonus { border: 2px dashed var(--line); }
+.bonus p.lede { margin: 0; color: var(--muted); }
+.bonus form { display: grid; gap: 10px; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); align-items: end; }
+.bonus form .btn { grid-column: 1 / -1; justify-self: start; }
+.bonus form .msg { grid-column: 1 / -1; }
+.bonus input { border-color: var(--line); background: var(--paper); color: var(--ink); }
+.bonus #b-code { font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.08em; }
+.bonus .msg.err { color: var(--err); } .bonus .msg.ok { color: var(--ok); }
+@media (max-width: 420px) { .bonus form { grid-template-columns: minmax(0, 1fr); } }
+.tix { font-family: var(--mono); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; padding: 3px 8px; border-radius: 99px; background: var(--accent); color: var(--accent-ink); white-space: nowrap; }
+.codes-ctl { display: grid; gap: 10px; border-top: 1px solid color-mix(in srgb, var(--paper) 25%, transparent); padding-top: 14px; }
+.codes-ctl .make { display: grid; grid-template-columns: 6rem minmax(0, 1fr) auto; gap: 8px; align-items: end; }
+.codes-ctl input { background: color-mix(in srgb, var(--paper) 92%, transparent); color: var(--ink); border-color: var(--line); padding: 8px 10px; font-size: 0.95rem; }
+.codes-ctl label { color: var(--paper); }
+.codes-ctl .t-state { font-family: var(--mono); font-weight: 700; font-size: 0.85rem; color: var(--ticket); }
+.codes-ctl .quick { display: flex; flex-wrap: wrap; gap: 6px; }
+.code-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; max-height: 300px; overflow-y: auto; font-size: 0.9rem; }
+.code-list li { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 4px 0; border-top: 1px solid color-mix(in srgb, var(--paper) 15%, transparent); }
+.code-list code { font-family: var(--mono); font-weight: 700; }
+.code-list .used { opacity: 0.6; }
+.code-list span { overflow-wrap: anywhere; }
+@media (max-width: 560px) { .codes-ctl .make { grid-template-columns: 5rem minmax(0, 1fr); } .codes-ctl .make .btn { grid-column: 1 / -1; justify-self: start; } }
 </style>
 </head>
 <body>
@@ -172,10 +196,11 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
   <header>
     <div class="eyebrow">Raffle</div>
     <h1>Student Creative Summit</h1>
-    <p>Enter your name and area of study, then pick the prizes you'd like a chance at. One entry per name; each person can win one prize.</p>
+    <p>Enter your name and area of study, then pick the prizes you'd like a chance at. One entry per name; each person can win one prize. Got a bonus code? Add it after you enter for an extra ticket.</p>
   </header>
 
   <div class="grid">
+    <div style="display:grid;gap:20px;min-width:0">
     <section class="ticket" aria-labelledby="enter-h">
       <form class="stub-main" id="entry-form" novalidate>
         <h2 id="enter-h">Get your ticket</h2>
@@ -214,6 +239,19 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
       <div class="stub-side" aria-hidden="true">Admit one · Raffle</div>
     </section>
 
+    <section class="panel bonus" id="bonus" aria-labelledby="bonus-h">
+      <h2 id="bonus-h">Have a bonus code?</h2>
+      <p class="lede">Add it to your entry for one extra ticket in every draw you entered. Each code works once.</p>
+      <form id="bonus-form" novalidate>
+        <label for="b-name">Name on your entry<input id="b-name" autocomplete="name" maxlength="80" placeholder="e.g. Jordan Alvarez"></label>
+        <label for="b-code">Bonus code<input id="b-code" maxlength="12" placeholder="CSF-XXXXX" autocomplete="off" autocapitalize="characters" spellcheck="false"></label>
+        <div class="honey" aria-hidden="true"><label for="b-website">Website<input id="b-website" tabindex="-1" autocomplete="off"></label></div>
+        <button class="btn" id="b-submit" type="submit">Add bonus ticket</button>
+        <p class="msg" id="b-msg" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+    </div>
+
     <div style="display:grid;gap:20px;min-width:0">
       <details class="stage" id="stage" hidden open>
         <summary>Organizer tools</summary>
@@ -245,12 +283,26 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
             <button class="btn small ghost" type="button" data-mode="clear">Remove timer</button>
           </div>
         </div>
+        <div class="codes-ctl">
+          <div class="t-head" style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline"><span class="label" style="color:var(--paper)">Bonus codes</span><span class="t-state" id="cc-state">Loading…</span></div>
+          <form class="make" id="cc-make">
+            <label for="cc-count">How many<input id="cc-count" type="number" min="1" max="200" value="20" inputmode="numeric"></label>
+            <label for="cc-label">Label (optional)<input id="cc-label" maxlength="40" placeholder="e.g. Presenters"></label>
+            <button class="btn" type="submit">Make codes</button>
+          </form>
+          <div class="quick">
+            <button class="btn small" id="cc-print" type="button">Print unused slips</button>
+            <button class="btn small ghost" id="cc-csv" type="button">Download CSV</button>
+            <button class="btn small ghost" id="cc-toggle" type="button" aria-expanded="false">Show codes</button>
+          </div>
+          <ol class="code-list" id="cc-list" hidden></ol>
+        </div>
         <div class="row">
           <button class="btn ghost" id="reset-btn" type="button">Clear entries &amp; winners…</button>
           <button class="btn ghost" id="logout-btn" type="button">Sign out</button>
         </div>
         <div class="confirm" id="reset-confirm" hidden>
-          <span>Delete every entry and winner? Prizes stay listed.</span>
+          <span>Delete every entry and winner? Prizes stay listed, and unused bonus codes keep working.</span>
           <button class="btn small" id="reset-yes" type="button">Yes, clear</button>
           <button class="btn small ghost" id="reset-no" type="button" style="color:inherit">Cancel</button>
         </div>
@@ -288,6 +340,8 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
   const $ = (id) => document.getElementById(id);
   const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
   let prizes = [], entries = [], winners = [], busy = false;
+  let codes = null, maxTickets = 3, showCodes = false;
+  const ticketsOf = (e) => Math.max(1, e.tickets || 1);
   let code = ""; try { code = sessionStorage.getItem("raffle-code") || ""; } catch {}
   const isOrganizer = () => !!code;
   const tidy = (s) => s.normalize("NFC").replace(/\s+/g, " ").trim();
@@ -305,6 +359,7 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
     if (r.status === 401) signOut();
     if (!r.ok) throw new Error(data.error || "Something went wrong. Try again.");
     if (data.state) applyState(data.state);
+    if (Array.isArray(data.codes)) codes = data.codes;
     return data;
   }
 
@@ -404,6 +459,7 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
       e.prizes.map(prizeById).filter(Boolean).forEach(p => tags.append(el("span", "tag", p.name)));
       who.append(tags);
       const end = el("div"); end.style.cssText = "display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:end";
+      if (ticketsOf(e) > 1) { const t = el("span", "tix", "×" + ticketsOf(e)); t.title = ticketsOf(e) + " tickets (bonus codes)"; end.append(t); }
       const w = wonBy.get(e.id);
       if (w) end.append(el("span", "won", "Won " + (prizeById(w.prizeId)?.name || "a prize")));
       if (isOrganizer()) {
@@ -415,7 +471,10 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
       li.append(el("span", "no", "No. " + pad(i + 1)), who, end);
       list.append(li);
     });
-    $("count").textContent = entries.length + (entries.length === 1 ? " ticket" : " tickets");
+    const tix = entries.reduce((n, e) => n + ticketsOf(e), 0);
+    $("count").textContent = tix === entries.length
+      ? entries.length + (entries.length === 1 ? " ticket" : " tickets")
+      : `${entries.length} ${entries.length === 1 ? "entry" : "entries"} · ${tix} tickets`;
     $("empty").hidden = entries.length > 0;
     $("empty").textContent = "No tickets yet. Fill in the form to be the first entry.";
   }
@@ -423,7 +482,7 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
   function renderAll() {
     $("stage").hidden = !isOrganizer();
     $("org-link").hidden = isOrganizer();
-    renderPicker(); renderPrizes(); renderEntries();
+    renderPicker(); renderPrizes(); renderEntries(); renderCodes();
     lastStatus = null; tickTimer(); fillTimerInputs();
   }
 
@@ -440,6 +499,7 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
     if ((data.updatedAt || 0) < stateAt) return;
     stateAt = data.updatedAt || 0;
     prizes = data.prizes || []; entries = data.entries || []; winners = data.winners || [];
+    if (data.maxTickets) maxTickets = data.maxTickets;
     if (data.schedule) schedule = { opensAt: data.schedule.opensAt ?? null, closesAt: data.schedule.closesAt ?? null };
   }
 
@@ -511,6 +571,7 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
       if (!r.ok) throw 0;
       applyState(await r.json());
       note("");
+      if (isOrganizer()) { try { await admin("codes"); } catch {} }
     } catch { note("Can't reach the raffle right now. Retrying…"); }
     renderAll();
   }
@@ -551,6 +612,7 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
       const data = await r.json().catch(() => ({}));
       if (!r.ok) { setMsg(data.error || "Your entry wasn't saved. Try again.", "err"); return; }
       setMsg(`You're in, ${name}. Good luck!`, "ok");
+      if (!$("b-name").value) $("b-name").value = name;
       $("f-name").value = ""; $("f-major").selectedIndex = 0;
       $("pick-list").querySelectorAll("input").forEach(i => i.checked = false);
       if (data.state) { applyState(data.state); renderAll(); }
@@ -568,11 +630,11 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
       await admin("check");
       try { sessionStorage.setItem("raffle-code", code); } catch {}
       $("org-form").hidden = true; $("f-code").value = ""; $("org-msg").textContent = "";
-      renderAll();
+      renderAll(); loadCodes();
     } catch (err) { code = ""; $("org-msg").textContent = err.message; }
   });
   function signOut() {
-    code = ""; try { sessionStorage.removeItem("raffle-code"); } catch {}
+    code = ""; codes = null; showCodes = false; try { sessionStorage.removeItem("raffle-code"); } catch {}
     renderAll();
   }
   $("logout-btn").addEventListener("click", signOut);
@@ -605,6 +667,126 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
     $("reset-yes").disabled = false; $("reset-confirm").hidden = true;
   });
 
+  // ---- Bonus codes: attendee side ----
+  // A slip's QR code opens this page with ?code=CSF-XXXXX already filled in.
+  try {
+    const pre = new URLSearchParams(location.search).get("code");
+    if (pre) {
+      $("b-code").value = pre.toUpperCase();
+      requestAnimationFrame(() => { $("bonus").scrollIntoView({ block: "center" }); $("b-name").focus({ preventScroll: true }); });
+    }
+  } catch {}
+  const bMsg = (t, k) => { const m = $("b-msg"); m.textContent = t; m.className = "msg " + (k || ""); };
+  $("bonus-form").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const name = tidy($("b-name").value), c = $("b-code").value.trim();
+    if (!name) { bMsg("Enter the name you used for your raffle entry.", "err"); $("b-name").focus(); return; }
+    if (!c) { bMsg("Enter the code from your slip.", "err"); $("b-code").focus(); return; }
+    const btn = $("b-submit"); btn.disabled = true; bMsg("Adding your bonus ticket…");
+    try {
+      const r = await fetch("api/bonus.php", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name, code: c, website: $("b-website").value }) });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) { bMsg(data.error || "That code wasn't added. Try again.", "err"); return; }
+      bMsg(`Done. ${data.name} now has ${data.tickets} tickets.`, "ok");
+      $("b-code").value = "";
+      try { if (location.search.includes("code=")) history.replaceState(null, "", location.pathname); } catch {}
+      if (data.state) { applyState(data.state); renderAll(); }
+    } catch { bMsg("No connection. Check your internet and try again.", "err"); }
+    finally { btn.disabled = false; }
+  });
+
+  // ---- Bonus codes: organizer side ----
+  const fmtTime = (ms) => new Date(ms).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  async function loadCodes() { if (isOrganizer()) { try { await admin("codes"); } catch (err) { orgNote(err.message); } renderCodes(); } }
+  function renderCodes() {
+    if (!isOrganizer()) return;
+    if (!codes) { $("cc-state").textContent = "Loading…"; return; }
+    const used = codes.filter(c => c.usedBy).length;
+    $("cc-state").textContent = codes.length ? `${codes.length} codes · ${used} used · ${codes.length - used} unused · max ${maxTickets} tickets each` : "No codes yet";
+    $("cc-print").disabled = codes.length === used;
+    $("cc-csv").disabled = !codes.length;
+    $("cc-toggle").disabled = !codes.length;
+    $("cc-toggle").textContent = showCodes ? "Hide codes" : "Show codes";
+    $("cc-toggle").setAttribute("aria-expanded", String(showCodes));
+    const list = $("cc-list"); list.hidden = !showCodes || !codes.length;
+    if (list.hidden) return;
+    list.textContent = "";
+    [...codes].reverse().forEach(c => {
+      const li = el("li", c.usedBy ? "used" : "");
+      li.append(el("code", null, c.code));
+      li.append(el("span", null, (c.label ? c.label + " · " : "") + (c.usedBy ? `Used by ${c.usedByName}, ${fmtTime(c.usedAt)}` : "Unused")));
+      if (!c.usedBy) {
+        const del = el("button", "btn small ghost", "Void"); del.type = "button";
+        del.setAttribute("aria-label", "Void code " + c.code);
+        del.addEventListener("click", () => act(del, () => admin("deleteCode", { code: c.code })));
+        li.append(del);
+      } else li.append(el("span"));
+      list.append(li);
+    });
+  }
+  $("cc-make").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const btn = ev.submitter || $("cc-make").querySelector("button");
+    await act(btn, async () => {
+      const d = await admin("makeCodes", { count: Number($("cc-count").value), label: $("cc-label").value });
+      orgNote(`Made ${d.created.length} codes. Print them with “Print unused slips”.`);
+    });
+    btn.disabled = false;
+  });
+  $("cc-toggle").addEventListener("click", () => { showCodes = !showCodes; if (showCodes) loadCodes(); else renderCodes(); });
+  $("cc-csv").addEventListener("click", async () => {
+    await loadCodes(); if (!codes) return;
+    const q = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const rows = [["Code", "Label", "Created", "Status", "Used by", "Used at"]].concat(codes.map(c =>
+      [c.code, c.label, new Date(c.createdAt).toISOString(), c.usedBy ? "Used" : "Unused", c.usedByName || "", c.usedAt ? new Date(c.usedAt).toISOString() : ""]));
+    const blob = new Blob([rows.map(r => r.map(q).join(",")).join("\n")], { type: "text/csv" });
+    const a = el("a"); a.href = URL.createObjectURL(blob); a.download = "raffle-bonus-codes.csv"; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+
+  // Printable sheet of slips, 3 across. Each slip has the code and a QR code that opens this page with it filled in.
+  const QR_LIB = "https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js";
+  const loadQr = () => window.qrcode ? Promise.resolve() : new Promise(res => {
+    const sc = document.createElement("script"); sc.src = QR_LIB; sc.onload = res; sc.onerror = res; document.head.append(sc);
+  });
+  const esc = (t) => String(t).replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
+  $("cc-print").addEventListener("click", async () => {
+    const w = window.open("", "_blank");
+    if (!w) { orgNote("Your browser blocked the print window. Allow pop-ups for this site and try again."); return; }
+    w.document.write("<p style='font-family:sans-serif;padding:20px'>Preparing slips…</p>");
+    await Promise.all([loadCodes(), loadQr()]);
+    const unused = (codes || []).filter(c => !c.usedBy);
+    const base = location.origin + location.pathname;
+    const shortUrl = location.host + location.pathname.replace(/index\.html$/, "").replace(/\/$/, "");
+    const slips = unused.map(c => {
+      let qr = "";
+      if (window.qrcode) { const q = window.qrcode(0, "M"); q.addData(base + "?code=" + c.code); q.make(); qr = q.createSvgTag({ cellSize: 3, margin: 0, scalable: true }); }
+      return `<div class="slip"><div class="txt"><div class="eb">Student Creative Forum · Bonus ticket</div><div class="code">${esc(c.code)}</div><div class="how">Scan, or go to <b>${esc(shortUrl)}</b>, and add this code with the name on your entry. One extra ticket. Works once.</div>${c.label ? `<div class="lab">${esc(c.label)}</div>` : ""}</div><div class="qr">${qr}</div></div>`;
+    }).join("");
+    w.document.open();
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Raffle bonus slips</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anek+Latin:wdth,wght@75..125,400..800&family=Barlow:wght@400;700&family=Space+Mono:wght@700&display=swap">
+<style>
+@page { size: letter; margin: 0.4in; }
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Barlow, system-ui, sans-serif; color: #1d1b3a; }
+.bar { padding: 12px 0 16px; display: flex; gap: 12px; align-items: center; font-size: 14px; }
+.bar button { font: inherit; font-weight: 700; padding: 8px 14px; border-radius: 8px; border: 0; background: #d6336c; color: #fff; cursor: pointer; }
+.sheet { display: grid; grid-template-columns: repeat(3, 1fr); }
+.slip { border: 1px dashed #9a97bd; padding: 10px 10px 10px 12px; display: grid; grid-template-columns: minmax(0, 1fr) 0.8in; gap: 8px; align-items: center; break-inside: avoid; min-height: 1.45in; }
+.eb { font-family: "Space Mono", monospace; font-weight: 700; font-size: 7px; letter-spacing: 0.12em; text-transform: uppercase; color: #64618a; }
+.code { font-family: "Space Mono", monospace; font-weight: 700; font-size: 18px; letter-spacing: 0.04em; margin: 3px 0; white-space: nowrap; }
+.how { font-size: 8.5px; line-height: 1.3; }
+.lab { font-size: 8px; color: #64618a; margin-top: 3px; }
+.qr svg { width: 0.8in; height: 0.8in; display: block; }
+@media print { .bar { display: none; } }
+</style></head><body>
+<div class="bar"><button onclick="print()">Print</button><span>${unused.length} unused codes · cut along the dashed lines</span></div>
+<div class="sheet">${slips || "<p>No unused codes.</p>"}</div>
+</body></html>`);
+    w.document.close();
+  });
+
   // Refresh every 10 s while the page is visible and someone has used it in the last 10 minutes.
   const POLL_MS = 10000, IDLE_MS = 10 * 60 * 1000;
   let lastActive = Date.now(), lastFetch = Date.now();
@@ -622,6 +804,7 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
     lastFetch = Date.now(); refresh();
   }, POLL_MS);
   refresh();
+  loadCodes();
 })();
 </script>
 </body>
