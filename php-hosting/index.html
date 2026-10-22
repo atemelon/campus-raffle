@@ -166,6 +166,29 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
 .timer-ctl .quick { display: flex; flex-wrap: wrap; gap: 6px; }
 @media (max-width: 560px) { .timer-ctl .times { grid-template-columns: minmax(0, 1fr); } }
 
+/* ---------- Organizer guide ---------- */
+.guide { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+.guide > summary { cursor: pointer; padding: 16px 20px; font-family: var(--display); font-weight: 600; font-size: 1.1rem; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; list-style: none; }
+.guide > summary::-webkit-details-marker { display: none; }
+.guide > summary::after { content: "Open"; font-family: var(--body); font-weight: 700; font-size: 0.85rem; text-decoration: underline; color: var(--muted); }
+.guide[open] > summary::after { content: "Close"; }
+.guide > summary:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; border-radius: 14px; }
+.guide-body { padding: 0 20px 22px; display: grid; gap: 6px; font-size: 0.95rem; }
+.guide-body > p.lede { margin: 0 0 6px; color: var(--muted); }
+.guide-body details { border-top: 1px solid var(--line); }
+.guide-body details > summary { cursor: pointer; padding: 12px 0; font-weight: 700; }
+.guide-body details > summary::marker { color: var(--accent); }
+.guide-body details > div { padding: 0 0 14px; display: grid; gap: 8px; }
+.guide-body p, .guide-body ol, .guide-body ul { margin: 0; }
+.guide-body ol, .guide-body ul { padding-left: 1.3em; display: grid; gap: 6px; }
+.guide-body b { font-weight: 700; }
+.guide-body code { font-family: var(--mono); font-size: 0.85em; background: var(--paper); border: 1px solid var(--line); border-radius: 5px; padding: 0 4px; overflow-wrap: anywhere; }
+.guide-body .tip { background: color-mix(in srgb, var(--ticket) 22%, transparent); border-radius: 10px; padding: 10px 12px; }
+.guide-body dl { margin: 0; display: grid; gap: 8px; }
+.guide-body dt { font-weight: 700; }
+.guide-body dd { margin: 0 0 0 1em; color: var(--muted); }
+.guide-link { color: var(--ticket); font: inherit; font-weight: 700; background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }
+
 /* ---------- Bonus codes ---------- */
 .bonus { border: 2px dashed var(--line); }
 .bonus p.lede { margin: 0; color: var(--muted); }
@@ -307,6 +330,7 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
           <button class="btn small ghost" id="reset-no" type="button" style="color:inherit">Cancel</button>
         </div>
         <p class="msg" id="org-note" style="color:var(--ticket)"></p>
+        <p style="margin:0;font-size:0.9rem;opacity:.85">New to running the raffle? <button class="guide-link" id="open-guide" type="button">Read the organizer guide</button></p>
         </div>
       </details>
 
@@ -330,6 +354,134 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
         <button class="btn" type="submit">Unlock</button>
         <p class="msg err" id="org-msg" style="flex-basis:100%"></p>
       </form>
+      <details class="guide" id="guide">
+        <summary>Organizer guide</summary>
+        <div class="guide-body">
+          <p class="lede">Everything needed to run the raffle, for anyone stepping in. Open a section below. Nothing here is secret; the passphrase is not written on this page.</p>
+
+          <details>
+            <summary>1. Signing in</summary>
+            <div>
+              <ol>
+                <li>Click <b>Organizer sign-in</b> at the bottom of this page.</li>
+                <li>Type the organizer passphrase and press <b>Unlock</b>. Get the passphrase from Pavel Romaniko or Ariane Mauroy; it is never sent by the page itself.</li>
+                <li>The dark <b>Organizer tools</b> panel appears above the prize list, and Draw, Remove, Undo and quantity controls appear on prizes and entries.</li>
+              </ol>
+              <p>You stay signed in until you close the browser tab. On a shared or projected computer, press <b>Sign out</b> when you step away.</p>
+              <p class="tip">If the page says the passphrase isn't right, check capital letters. If it says to set <code>ORGANIZER_CODE</code>, the passphrase hasn't been set on the server yet (see "Behind the scenes").</p>
+            </div>
+          </details>
+
+          <details>
+            <summary>2. Before the event: prizes</summary>
+            <div>
+              <ol>
+                <li>In Organizer tools, fill in <b>Prize</b> (e.g. "Wacom tablet"), optional <b>Details</b> (e.g. "Donated by the Bookstore") and <b>Qty</b> (how many of that item you have), then <b>Add prize</b>.</li>
+                <li>Repeat for each prize. Attendees see the list right away and tick the prizes they want a chance at.</li>
+                <li>To change a quantity later, edit the number on the prize card and press <b>Set qty</b>. Don't set it lower than the number already awarded.</li>
+                <li><b>Delete…</b> removes a prize, its winners, and takes it off everyone's ticket. Use it only for mistakes.</li>
+              </ol>
+              <p>Entering is blocked until at least one prize is listed.</p>
+            </div>
+          </details>
+
+          <details>
+            <summary>3. Before the event: entry timer</summary>
+            <div>
+              <p>The timer controls when people can enter and when bonus codes work. Everyone sees the same countdown on the ticket, synced to the server's clock.</p>
+              <ul>
+                <li><b>Opens / Closes + Save times:</b> schedule both ahead of time. Leave Opens empty to open immediately; leave Closes empty to stay open until you close it.</li>
+                <li><b>Open now:</b> opens entries immediately.</li>
+                <li><b>Close in 15 / 30 min:</b> starts a countdown everyone can see. Good for announcing "last call".</li>
+                <li><b>+5 min:</b> extends the closing time.</li>
+                <li><b>Close now:</b> stops entries immediately.</li>
+                <li><b>Remove timer:</b> no limits; entries stay open.</li>
+              </ul>
+              <p class="tip">For Oct 27: open entries when doors open (12:00 PM) and announce a "Close in 15 min" about 15 minutes before you plan to draw.</p>
+            </div>
+          </details>
+
+          <details>
+            <summary>4. Bonus codes (extra tickets as rewards)</summary>
+            <div>
+              <p>A bonus code gives one extra ticket in every draw that person entered. Use them as rewards: presenting, exhibiting, posting on the idea board, helping set up or clean up.</p>
+              <ol>
+                <li>In Organizer tools → <b>Bonus codes</b>, choose <b>How many</b> (up to 200 at a time) and an optional <b>Label</b> such as "Presenters" so you can tell batches apart later. Press <b>Make codes</b>.</li>
+                <li>Press <b>Print unused slips</b>. A sheet opens with cut-out slips, three across. Each has the code and a QR code; print it and cut along the dashed lines. (If nothing opens, allow pop-ups for this site.)</li>
+                <li>Hand one slip per reward. The person scans the QR (the code fills in by itself) or types the code into <b>Have a bonus code?</b>, along with the name on their entry.</li>
+              </ol>
+              <dl>
+                <dt>Rules</dt>
+                <dd>Each code works once. The person must enter the raffle first, with the same name. Codes only work while entries are open. One person can hold at most <b><span class="max-tix">3</span> tickets</b> in total; a code offered to someone already at the limit is not used up, so they can pass the slip on.</dd>
+                <dt>Keeping track</dt>
+                <dd><b>Show codes</b> lists every code, its label and who used it when. <b>Void</b> cancels a lost or unwanted unused code. <b>Download CSV</b> saves the list.</dd>
+                <dt>Safety</dt>
+                <dd>Codes are never shown on the public page. After 10 wrong codes from one network in 10 minutes, further tries are paused for a few minutes; on shared campus Wi-Fi this can affect a whole room, so ask people to type carefully.</dd>
+              </dl>
+            </div>
+          </details>
+
+          <details>
+            <summary>5. During the event: helping attendees</summary>
+            <div>
+              <ul>
+                <li>Point people to the raffle page (QR code on the signs, or <b>umlcreativeforum.com/raffle</b>). They enter full name, area of study, and tick prizes.</li>
+                <li>Each name can enter once. Names are matched ignoring capital letters, accents and extra spaces, so "Jordan Alvarez" and "jordan  alvarez" are the same person.</li>
+                <li><b>"Already entered"</b> for a different person with the same name: ask them to add a middle initial.</li>
+                <li><b>Typo in a name or wrong prizes ticked:</b> find the entry in the list, press <b>Remove</b>, and have them enter again. (Removing also removes any bonus tickets they had, and their used code stays used.)</li>
+                <li><b>"We couldn't find … in the raffle"</b> on a bonus code: they haven't entered yet, or typed a different name. Have them enter first, or use the exact name shown in the Entries list.</li>
+                <li><b>"Can't reach the raffle"</b>: a connection blip. The page retries every 10 seconds; nothing is lost.</li>
+              </ul>
+              <p>The Entries list updates every 10 seconds on every screen. A <b>×2</b> or <b>×3</b> badge means that person has bonus tickets.</p>
+            </div>
+          </details>
+
+          <details>
+            <summary>6. Drawing winners</summary>
+            <div>
+              <ol>
+                <li>Close entries first: press <b>Close now</b> (or let the timer run out) so nobody enters mid-draw.</li>
+                <li>Put this page on the projector, signed in. You can use the <b>Hide</b> link on the Organizer tools bar to tuck the controls away; it opens by itself when you draw, so the winner is always shown.</li>
+                <li>On a prize card, press <b>Draw</b>. Names shuffle briefly, then the winner appears large at the top of Organizer tools and is listed on the prize card.</li>
+                <li>Press <b>Draw</b> again for each remaining item of that prize. The card shows how many are left.</li>
+              </ol>
+              <ul>
+                <li><b>Fairness:</b> only people who ticked that prize can win it, and each ticket is one chance, so a ×3 entry is three times as likely as a ×1 entry.</li>
+                <li><b>One prize per person:</b> once someone wins, they are skipped in every later draw. Decide your order before you start: people who win an early prize are out of the running for later ones.</li>
+                <li><b>No-show:</b> press <b>Undo</b> next to that winner. The item is free again and the person goes back into the pool; to keep them out, also <b>Remove</b> their entry. Then press <b>Draw</b>.</li>
+                <li>Draw is greyed out when every item is awarded or nobody eligible is left.</li>
+              </ul>
+            </div>
+          </details>
+
+          <details>
+            <summary>7. After the event</summary>
+            <div>
+              <ol>
+                <li>Record the winners: take a screenshot of the Prizes section (each card lists its winners), and press <b>Download CSV</b> under Bonus codes if you want the code record.</li>
+                <li>When you're done with this event's data, press <b>Clear entries &amp; winners…</b> and confirm. Prizes stay listed for reuse; edit or delete them as needed. Used codes are cleared; unused printed slips keep working next time.</li>
+                <li>Press <b>Remove timer</b> or set new times for the next event, then <b>Sign out</b>.</li>
+              </ol>
+              <p class="tip">Clearing can't be undone. Take the screenshot first.</p>
+            </div>
+          </details>
+
+          <details>
+            <summary>8. Behind the scenes (for whoever manages the hosting)</summary>
+            <div>
+              <p>The raffle lives in the <code>raffle</code> folder of the forum site on IONOS web hosting (umlcreativeforum.com points to the <code>csf</code> folder).</p>
+              <ul>
+                <li><code>index.html</code>: this page.</li>
+                <li><code>api/config.php</code>: settings. <code>ORGANIZER_CODE</code> is the passphrase; <code>AREAS</code> is the list of areas of study (change the dropdown in <code>index.html</code> to match). To change the ticket limit, add a line like <code>const MAX_TICKETS = 4;</code>.</li>
+                <li><code>api/entries.php</code>, <code>api/bonus.php</code>, <code>api/admin.php</code>, <code>api/lib.php</code>: the server code. Don't edit these unless you know PHP.</li>
+                <li><code>data/</code>: all entries, prizes, winners, codes and the timer, saved in <code>raffle-data.php</code>. It is locked against public viewing. To back up, download this folder over SFTP or the IONOS file manager. Deleting <code>raffle-data.php</code> resets everything, including prizes.</li>
+              </ul>
+              <p>When uploading updates, replace files inside the existing <code>raffle</code> folder (don't create a <code>raffle/raffle</code> folder), and never overwrite <code>config.php</code> or <code>data/</code>.</p>
+              <p>Source code: github.com/atemelon/campus-raffle (the <code>php-hosting</code> folder). Questions: <a href="mailto:Pavel_Romaniko@uml.edu">Pavel_Romaniko@uml.edu</a> or <a href="mailto:Ariane_Mauroy@uml.edu">Ariane_Mauroy@uml.edu</a>.</p>
+            </div>
+          </details>
+        </div>
+      </details>
       <button class="org-link" id="org-link" type="button">Organizer sign-in</button>
     </div>
   </div>
@@ -499,7 +651,7 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
     if ((data.updatedAt || 0) < stateAt) return;
     stateAt = data.updatedAt || 0;
     prizes = data.prizes || []; entries = data.entries || []; winners = data.winners || [];
-    if (data.maxTickets) maxTickets = data.maxTickets;
+    if (data.maxTickets) { maxTickets = data.maxTickets; document.querySelectorAll(".max-tix").forEach(n => n.textContent = maxTickets); }
     if (data.schedule) schedule = { opensAt: data.schedule.opensAt ?? null, closesAt: data.schedule.closesAt ?? null };
   }
 
@@ -622,6 +774,10 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
   $("f-search").addEventListener("input", renderEntries);
 
   // Organizer
+  $("open-guide").addEventListener("click", () => {
+    const g = $("guide"); g.open = true;
+    g.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+  });
   $("org-link").addEventListener("click", () => { $("org-form").hidden = false; $("f-code").focus(); });
   $("org-form").addEventListener("submit", async (ev) => {
     ev.preventDefault();
