@@ -1,3 +1,6 @@
 node_modules/
 .netlify/
 .DS_Store
+
+# Upload bundles made for the hosting; not source
+*.zip
