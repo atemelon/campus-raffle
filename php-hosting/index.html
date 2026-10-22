@@ -354,7 +354,18 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
         <button class="btn" type="submit">Unlock</button>
         <p class="msg err" id="org-msg" style="flex-basis:100%"></p>
       </form>
-      <details class="guide" id="guide">
+      <details class="guide" id="signin-help">
+        <summary>Organizer sign-in help</summary>
+        <div class="guide-body">
+          <ol>
+            <li>Click <b>Organizer sign-in</b> just below.</li>
+            <li>Type the organizer passphrase and press <b>Unlock</b>. Get the passphrase from Pavel Romaniko or Ariane Mauroy.</li>
+            <li>Once you're signed in, the organizer tools and the full organizer guide appear on this page.</li>
+          </ol>
+          <p>You stay signed in until you close the browser tab. On a shared or projected computer, press <b>Sign out</b> when you step away.</p>
+        </div>
+      </details>
+      <details class="guide" id="guide" hidden>
         <summary>Organizer guide</summary>
         <div class="guide-body">
           <p class="lede">Everything needed to run the raffle, for anyone stepping in. Open a section below. Nothing here is secret; the passphrase is not written on this page.</p>
@@ -634,6 +645,8 @@ legend { font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter
   function renderAll() {
     $("stage").hidden = !isOrganizer();
     $("org-link").hidden = isOrganizer();
+    $("guide").hidden = !isOrganizer();
+    $("signin-help").hidden = isOrganizer();
     renderPicker(); renderPrizes(); renderEntries(); renderCodes();
     lastStatus = null; tickTimer(); fillTimerInputs();
   }
